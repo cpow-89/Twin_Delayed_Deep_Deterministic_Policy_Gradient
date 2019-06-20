@@ -1,5 +1,7 @@
 import torch
 import torch.nn.functional as func
+import utils
+import os
 from models import Actor
 from models import Critic
 from replay import ReplayBuffer
@@ -80,3 +82,27 @@ class TwinDelayedDDPG:
 
     def add_transition_to_memory(self, transition):
         self.memory.add(transition)
+
+    def save(self):
+        checkpoint_dir = os.path.join(".", *self.config["checkpoint_dir"], self.config["env_name"])
+        utils.save_state_dict(os.path.join(checkpoint_dir, "actor"), self.actor.state_dict())
+        utils.save_state_dict(os.path.join(checkpoint_dir, "actor_target"), self.actor_target.state_dict())
+        utils.save_state_dict(os.path.join(checkpoint_dir, "critic_twin_1"), self.critic_twin_1.state_dict())
+        utils.save_state_dict(os.path.join(checkpoint_dir, "critic_twin_1_target"), self.critic_twin_1.state_dict())
+        utils.save_state_dict(os.path.join(checkpoint_dir, "critic_twin_2"), self.critic_twin_1.state_dict())
+        utils.save_state_dict(os.path.join(checkpoint_dir, "critic_twin_2_target"), self.critic_twin_1.state_dict())
+
+    def load(self):
+        checkpoint_dir = os.path.join(".", *self.config["checkpoint_dir"], self.config["env_name"])
+        path = os.path.join(checkpoint_dir, "actor", "*")
+        self.actor.load_state_dict(utils.load_latest_available_state_dict(path))
+        path = os.path.join(checkpoint_dir, "actor_target", "*")
+        self.actor_target.load_state_dict(utils.load_latest_available_state_dict(path))
+        path = os.path.join(checkpoint_dir, "critic_twin_1", "*")
+        self.actor_target.load_state_dict(utils.load_latest_available_state_dict(path))
+        path = os.path.join(checkpoint_dir, "critic_twin_1_target", "*")
+        self.actor_target.load_state_dict(utils.load_latest_available_state_dict(path))
+        path = os.path.join(checkpoint_dir, "critic_twin_2", "*")
+        self.actor_target.load_state_dict(utils.load_latest_available_state_dict(path))
+        path = os.path.join(checkpoint_dir, "critic_twin_2_target", "*")
+        self.actor_target.load_state_dict(utils.load_latest_available_state_dict(path))
