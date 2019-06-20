@@ -8,12 +8,13 @@
   "n_exploration_steps": 1e4,
   "evaluations_freq": 5e3,
   "buffer_size": 50000,
-  "n_timesteps": 5e4,
+  "n_timesteps": 5e5,
   "batch_size": 128,
   "tau": 0.005,
   "policy_noise": 0.2,
   "noise_clip": 0.5,
   "discount_factor": 0.99,
   "exploration_noise": 0.1,
+  "eval_episodes": 10,
   "policy_update_delay": 2
 }
