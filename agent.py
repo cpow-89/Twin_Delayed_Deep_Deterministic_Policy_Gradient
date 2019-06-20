@@ -27,3 +27,8 @@ class TwinDelayedDDPG:
         self.tau = 0.005
         self.policy_noise = 0.2
         self.noise_clip = 0.5
+
+    def act(self, state):
+        state = torch.Tensor(state.reshape(1, -1)).to(DEVICE)
+        action = self.actor(state).cpu().data.numpy().flatten()
+        return action
