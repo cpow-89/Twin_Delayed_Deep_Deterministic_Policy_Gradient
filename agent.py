@@ -2,38 +2,40 @@ import torch
 import torch.nn.functional as func
 from models import Actor
 from models import Critic
-
-
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from replay import ReplayBuffer
 
 
 class TwinDelayedDDPG:
     def __init__(self, config, state_dim, action_dim, max_action):
-        self.actor = Actor(state_dim, action_dim, max_action).to(DEVICE)
-        self.actor_target = Actor(state_dim, action_dim, max_action).to(DEVICE)
+
+        self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.max_action = max_action
+
+        self.memory = ReplayBuffer(config["buffer_size"], self.device)
+
+        self.actor = Actor(state_dim, action_dim, max_action).to(self.device)
+        self.actor_target = Actor(state_dim, action_dim, max_action).to(self.device)
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters())
 
-        self.critic_twin_1 = Critic(state_dim, action_dim).to(DEVICE)
-        self.critic_twin_1_target = Critic(state_dim, action_dim).to(DEVICE)
+        self.critic_twin_1 = Critic(state_dim, action_dim).to(self.device)
+        self.critic_twin_1_target = Critic(state_dim, action_dim).to(self.device)
         self.critic_twin_1_target.load_state_dict(self.critic_twin_1.state_dict())
         self.critic_twin_1_optimizer = torch.optim.Adam(self.critic_twin_1.parameters())
 
-        self.critic_twin_2 = Critic(state_dim, action_dim).to(DEVICE)
-        self.critic_twin_2_target = Critic(state_dim, action_dim).to(DEVICE)
+        self.critic_twin_2 = Critic(state_dim, action_dim).to(self.device)
+        self.critic_twin_2_target = Critic(state_dim, action_dim).to(self.device)
         self.critic_twin_2_target.load_state_dict(self.critic_twin_2.state_dict())
         self.critic_twin_2_optimizer = torch.optim.Adam(self.critic_twin_2.parameters())
 
-        self.config = config
-        self.max_action = max_action
-
     def act(self, state):
-        state = torch.Tensor(state.reshape(1, -1)).to(DEVICE)
+        state = torch.Tensor(state.reshape(1, -1)).to(self.device)
         action = self.actor(state).cpu().data.numpy().flatten()
         return action
 
     def _add_noise_to_action(self, next_actions):
-        noises = torch.randn_like(next_actions).normal_(0, self.config["policy_noise"]).to(DEVICE)
+        noises = torch.randn_like(next_actions).normal_(0, self.config["policy_noise"]).to(self.device)
         noises = noises.clamp(-self.config["noise_clip"], self.config["noise_clip"])
         return (next_actions + noises).clamp(-self.max_action, self.max_action)
 
@@ -46,10 +48,10 @@ class TwinDelayedDDPG:
         for param, target_param in zip(source.parameters(), target.parameters()):
             target_param.data.copy_(self.config["tau"] * param.data + (1 - self.config["tau"]) * target_param.data)
 
-    def learn(self, replay_buffer, iterations):
+    def learn(self, iterations):
         for it in range(iterations):
-            transitions = replay_buffer.sample(self.config["batch_size"])
-            states, next_states, actions, rewards, dones = [torch.Tensor(elem).to(DEVICE) for elem in transitions]
+            transitions = self.memory.sample(self.config["batch_size"])
+            states, next_states, actions, rewards, dones = [torch.Tensor(elem).to(self.device) for elem in transitions]
             next_actions = self.actor_target(next_states)
             next_actions = self._add_noise_to_action(next_actions)
 
@@ -75,3 +77,6 @@ class TwinDelayedDDPG:
                 self._update_target_network_based_on_polyak_averaging(self.actor_target, self.actor)
                 self._update_target_network_based_on_polyak_averaging(self.critic_twin_1_target, self.critic_twin_1)
                 self._update_target_network_based_on_polyak_averaging(self.critic_twin_2_target, self.critic_twin_2)
+
+    def add_transition_to_memory(self, transition):
+        self.memory.add(transition)
