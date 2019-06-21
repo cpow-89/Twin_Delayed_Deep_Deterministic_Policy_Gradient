@@ -72,10 +72,7 @@ class TwinDelayedDDPG:
 
             if it % self.config["policy_update_delay"] == 0:
                 actor_loss = -self.critic_twin_1(states, self.actor(states)).mean()
-                self.actor_optimizer.zero_grad()
-                actor_loss.backward()
-                self.actor_optimizer.step()
-
+                self._update_weights(self.actor_optimizer, actor_loss)
                 self._update_target_network_based_on_polyak_averaging(self.actor_target, self.actor)
                 self._update_target_network_based_on_polyak_averaging(self.critic_twin_1_target, self.critic_twin_1)
                 self._update_target_network_based_on_polyak_averaging(self.critic_twin_2_target, self.critic_twin_2)
