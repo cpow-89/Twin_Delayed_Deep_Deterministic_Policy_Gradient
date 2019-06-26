@@ -1,8 +1,9 @@
-from datetime import datetime
 import os
 import glob
 import torch
 import torch.nn.parameter
+from datetime import datetime
+from gym import wrappers
 
 
 def mkdir(path):
@@ -38,3 +39,13 @@ def load_partial_state_dict(state_dict, target_state_dict):
             param = param.data
             target_state_dict[name].copy_(param)
     return state_dict
+
+
+def set_up_monitoring(env, config):
+    """wrap the environment to allow rendering and set up a save directory"""
+    path = os.path.join(".", *config["monitor_dir"], config["env_name"])
+    mkdir(path)
+    current_date_time = get_current_date_time()
+    current_date_time = current_date_time.replace(" ", "__").replace("/", "_").replace(":", "_")
+    env = wrappers.Monitor(env, os.path.join(path, current_date_time))
+    return env
