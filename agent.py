@@ -50,32 +50,31 @@ class TwinDelayedDDPG:
         for param, target_param in zip(source.parameters(), target.parameters()):
             target_param.data.copy_(self.config["tau"] * param.data + (1 - self.config["tau"]) * target_param.data)
 
-    def learn(self, iterations):
-        for it in range(iterations):
-            transitions = self.memory.sample(self.config["batch_size"])
-            states, next_states, actions, rewards, dones = [torch.Tensor(elem).to(self.device) for elem in transitions]
-            next_actions = self.actor_target(next_states)
-            next_actions = self._add_noise_to_action(next_actions)
+    def learn(self, iteration):
+        transitions = self.memory.sample(self.config["batch_size"])
+        states, next_states, actions, rewards, dones = [torch.Tensor(elem).to(self.device) for elem in transitions]
+        next_actions = self.actor_target(next_states)
+        next_actions = self._add_noise_to_action(next_actions)
 
-            target_q1 = self.critic_twin_1_target(next_states, next_actions)
-            target_q2 = self.critic_twin_2_target(next_states, next_actions)
-            min_target_q = torch.min(target_q1, target_q2)
-            target_q = rewards + ((1 - dones) * self.config["discount_factor"] * min_target_q).detach()
+        target_q1 = self.critic_twin_1_target(next_states, next_actions)
+        target_q2 = self.critic_twin_2_target(next_states, next_actions)
+        min_target_q = torch.min(target_q1, target_q2)
+        target_q = rewards + ((1 - dones) * self.config["discount_factor"] * min_target_q).detach()
 
-            curr_q1 = self.critic_twin_1(states, actions)
-            curr_q2 = self.critic_twin_2(states, actions)
+        curr_q1 = self.critic_twin_1(states, actions)
+        curr_q2 = self.critic_twin_2(states, actions)
 
-            critic_twin_1_optimizer_loss = func.mse_loss(curr_q1, target_q)
-            self._update_weights(self.critic_twin_1_optimizer, critic_twin_1_optimizer_loss)
-            critic_twin_2_optimizer_loss = func.mse_loss(curr_q2, target_q)
-            self._update_weights(self.critic_twin_2_optimizer, critic_twin_2_optimizer_loss)
+        critic_twin_1_optimizer_loss = func.mse_loss(curr_q1, target_q)
+        self._update_weights(self.critic_twin_1_optimizer, critic_twin_1_optimizer_loss)
+        critic_twin_2_optimizer_loss = func.mse_loss(curr_q2, target_q)
+        self._update_weights(self.critic_twin_2_optimizer, critic_twin_2_optimizer_loss)
 
-            if it % self.config["policy_update_delay"] == 0:
-                actor_loss = -self.critic_twin_1(states, self.actor(states)).mean()
-                self._update_weights(self.actor_optimizer, actor_loss)
-                self._update_target_network_based_on_polyak_averaging(self.actor_target, self.actor)
-                self._update_target_network_based_on_polyak_averaging(self.critic_twin_1_target, self.critic_twin_1)
-                self._update_target_network_based_on_polyak_averaging(self.critic_twin_2_target, self.critic_twin_2)
+        if iteration % self.config["policy_update_delay"] == 0:
+            actor_loss = -self.critic_twin_1(states, self.actor(states)).mean()
+            self._update_weights(self.actor_optimizer, actor_loss)
+            self._update_target_network_based_on_polyak_averaging(self.actor_target, self.actor)
+            self._update_target_network_based_on_polyak_averaging(self.critic_twin_1_target, self.critic_twin_1)
+            self._update_target_network_based_on_polyak_averaging(self.critic_twin_2_target, self.critic_twin_2)
 
     def add_transition_to_memory(self, transition):
         self.memory.add(transition)
