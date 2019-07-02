@@ -8,10 +8,22 @@ import random
 import json
 import session
 import utils
+import argparse
 
 
 def main():
-    with open(os.path.join(".", "configs", "AntBulletEnv_v0.json"), "r") as read_file:
+    parser = argparse.ArgumentParser(description="Run twin delayed deep deterministic policy gradient with given config")
+    parser.add_argument("-c",
+                        "--config",
+                        type=str,
+                        metavar="",
+                        required=True,
+                        help="Config file name - file must be available as .json in ./configs")
+
+    args = parser.parse_args()
+
+    # load config files
+    with open(os.path.join(".", "configs", args.config), "r") as read_file:
         config = json.load(read_file)
 
     env = gym.make(config["env_name"])
