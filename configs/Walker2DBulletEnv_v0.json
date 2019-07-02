@@ -1,5 +1,5 @@
 {
-  "env_name": "AntBulletEnv-v0",
+  "env_name": "Walker2DBulletEnv-v0",
   "monitor_dir": [ "monitor" ],
   "checkpoint_dir": [ "checkpoints" ],
   "run_training": false,

@@ -1,5 +1,5 @@
 {
-  "env_name": "AntBulletEnv-v0",
+  "env_name": "HumanoidBulletEnv-v0",
   "monitor_dir": [ "monitor" ],
   "checkpoint_dir": [ "checkpoints" ],
   "run_training": false,
@@ -9,13 +9,13 @@
   "n_exploration_steps": 1e4,
   "evaluations_freq": 5e3,
   "buffer_size": 50000,
-  "n_timesteps": 6e5,
+  "n_timesteps": 2e6,
   "batch_size": 100,
   "tau": 0.005,
   "policy_noise": 0.2,
   "noise_clip": 0.5,
   "discount_factor": 0.99,
-  "exploration_noise": 0.1,
+  "exploration_noise": 0.3,
   "eval_episodes": 10,
   "policy_update_delay": 2
 }
